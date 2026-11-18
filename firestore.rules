@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    // Só entra quem tiver sessão Google e um documento em members/{email}
+    // (criado à mão na consola do Firebase; o id do documento é o email).
+    function isMember() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(db)/documents/members/$(request.auth.token.email));
+    }
+
+    match /members/{email} {
+      allow read: if request.auth != null && (request.auth.token.email == email || isMember());
+      allow write: if false;
+    }
+
+    match /tasks/{taskId} {
+      allow read, write: if isMember();
+    }
+  }
+}
